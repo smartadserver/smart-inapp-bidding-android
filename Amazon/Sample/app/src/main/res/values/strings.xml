@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Amazon Header Bidding Sample</string>
+
+    <!-- Main Activity -->
+    <string name="title_activity_main">Amazon Header Bidding Sample</string>
+    <string name="title_activity_main_short">Amazon Header Bidding Sample</string>
+    <string-array name="activity_main_implementations_array">
+        <item>Banner with header bidding</item>
+        <item>Interstitial with header bidding</item>
+    </string-array>
+    <string name="activity_main_headerText">Choose an ad format :</string>
+    <string name="activity_main_footerText">This sample demonstrates how to integrate Amazon header bidding SDK with the Smart AdServer SDK in Android applications.</string>
+
+    <!-- Banner Activity with header bidding -->
+    <string name="title_activity_banner_hb">Banner with header bidding</string>
+    <string name="activity_banner_hb_refresh_btn">Reload</string>
+    <string name="activity_banner_hb_instructions">Simple banner integration with header bidding. See implementation in HeaderBiddingBannerActivity.</string>
+
+    <!-- Interstitial Activity with header bidding -->
+    <string name="title_activity_interstitial">Interstitial with header bidding</string>
+    <string name="activity_interstitial_refresh_btn">LOAD AD</string>
+    <string name="activity_interstitial_instructions">Simple interstitial integration with header bidding. Click the button to display an interstitial ad. See implementation in HeaderBiddingInterstitialActivity.</string>
+
+</resources>
