@@ -28,6 +28,9 @@ public class SASAmazonBidderConfigManager {
     // tag for logging purposes
     private static final String TAG = SASAmazonBidderAdapter.class.getSimpleName();
 
+    // the Time to live for the fetched config
+    private static final long CONFIG_TTL = 24 * 3600 * 1000; //24h in milliseconds
+
     // constant parameters keys for configuration file parsing
     private static final String PRICES_CURRENCY_CODE = "currencyCode";
     private static final String CREATIVE_TAG = "creativeTag";
@@ -72,6 +75,9 @@ public class SASAmazonBidderConfigManager {
     private String configUrl = null;
 
     private OkHttpClient okHttpClient;
+
+    // timestamp for last config call
+    private long lastConfigCallDate;
 
     /**
      * Returns the shared instance of {@link SASAmazonBidderConfigManager}
@@ -132,6 +138,12 @@ public class SASAmazonBidderConfigManager {
 
                         Log.i(TAG, " configuration network call took " + (System.currentTimeMillis() - startTime) + "ms");
 
+
+                        // local variables
+                        String currencyCode = null ,creativeTag = null;
+                        ConfigurationException newConfigException = null;
+                        Map<String,Double> newPrices = null;
+
                         // call was successful
                         if (response.isSuccessful()) {
 
@@ -156,13 +168,14 @@ public class SASAmazonBidderConfigManager {
                                 // extract price points
                                 String pricePointsString = amazonConfigJSONObject.getString(PRICE_POINTS);
 
+
                                 // check if price points string is not empty
                                 if (pricePointsString != null && pricePointsString.length() > 0) {
 
-                                    // wipe previous prices map
-                                    prices.clear();
+                                    // create temporary price map
+                                    newPrices = new HashMap<>();
 
-                                    // fill price point map
+                                    // fill temporary price point map
                                     String[] pricePointArray = pricePointsString.split(" ");
                                     for (String pricePoint: pricePointArray) {
 
@@ -171,38 +184,63 @@ public class SASAmazonBidderConfigManager {
 
                                         // if there is an incorrect number of tokens, throw an exception
                                         if (tokens.length != 2) {
-                                            configException = new ConfigurationException("The received Amazon bidder configuration contains invalid price point description : " + pricePoint);
+                                            newConfigException = new ConfigurationException("The received Amazon bidder configuration contains invalid price point description : " + pricePoint);
                                         }
 
                                         // try to add a price in the Map. If there is an incorrect value, throw an exception
                                         try {
-                                            prices.put(tokens[0], 0.3);
+                                            newPrices.put(tokens[0], Double.parseDouble(tokens[1]));
                                         } catch (NumberFormatException e) {
-                                            configException = new ConfigurationException("The received Amazon bidder configuration contains invalid price point value : " + tokens[1]);
+                                            newConfigException = new ConfigurationException("The received Amazon bidder configuration contains invalid price point value : " + tokens[1]);
                                         }
                                     }
                                 } else {
-                                    configException = new ConfigurationException("The received Amazon bidder configuration does not contain any price point");
+                                    newConfigException = new ConfigurationException("The received Amazon bidder configuration does not contain any price point");
                                 }
 
 
                             } catch (JSONException e) {
                                 // if JSON is invalid, throw an exceptions
-                                configException = new ConfigurationException("The received Amazon bidder configuration JSON is not valid", e);
+                                newConfigException = new ConfigurationException("The received Amazon bidder configuration JSON is not valid", e);
                             }
 
-                            // if we did not hit an exception so far, mark this SASAmazonBidderConfigManager as ready
-                            if (configException == null) {
-                                setReady(true);
-                                Log.i(TAG, " Bidder configuration  took " + (System.currentTimeMillis() - startTime) + "ms");
-                            }
+
                         } else {
                             // create exception to avoid future retries as this URL is unreachable
-                            configException = new ConfigurationException("Amazon bidder config manager URL unreachable : " + response.code());
+                            newConfigException = new ConfigurationException("Amazon bidder config manager URL unreachable : " + response.code());
                         }
 
+                        // if we did not hit an exception when fetching a new configuration, mark this SASAmazonBidderConfigManager as ready
+                        if (newConfigException == null) {
+                            setReady(true);
+                            configException = null;
 
-                        // mar this SASAmazonBidderConfigManager config fetching as done
+                            // commit newly fetched values
+                            SASAmazonBidderConfigManager.this.currencyCode = currencyCode;
+                            SASAmazonBidderConfigManager.this.creativeTag = creativeTag;
+                            SASAmazonBidderConfigManager.this.prices = newPrices;
+
+                            lastConfigCallDate = System.currentTimeMillis();
+                            Log.i(TAG, " Bidder configuration  took " + (System.currentTimeMillis() - startTime) + "ms");
+                        } else {
+                            if (!isReady) {
+                                // mark configuration as incorrect only if previous stated was "not ready" (i.e. do not overwrite a previously OK config)
+                                setReady(false);
+                                configException = newConfigException;
+
+                                // reset internal values
+                                SASAmazonBidderConfigManager.this.currencyCode = null;
+                                SASAmazonBidderConfigManager.this.creativeTag = null;
+                                SASAmazonBidderConfigManager.this.prices = null;
+
+                                Log.i(TAG, " Bidder configuration  failure: " + configException);
+
+                            } else {
+                                Log.i(TAG, " Bidder configuration failure : using previously fetched configuration");
+                            }
+                        }
+
+                        // mark this SASAmazonBidderConfigManager config fetching as done
                         synchronized (this) {
                             isFetchingConfig = false;
                         }
@@ -289,12 +327,21 @@ public class SASAmazonBidderConfigManager {
         this.isReady = ready;
     }
 
+    /**
+     * Creates a {@link SASAmazonBidderAdapter} from the Amazon ad response
+     * @param adResponse the Amazon ad response object
+     * @return a {@link SASAmazonBidderAdapter} to convey Amazon ad response elements to Smart ad delivery
+     * @throws ConfigurationException the exception that occurred when configuring the {@link SASAmazonBidderConfigManager}, if any
+     */
     @Nullable public SASAmazonBidderAdapter getBidderAdapter(DTBAdResponse adResponse) throws ConfigurationException {
 
         if (isReady()) {
+            if (System.currentTimeMillis() > (lastConfigCallDate + CONFIG_TTL)) {
+                // trigger config has expired, load a new one for next calls
+                fetchConfig();
+            }
             return new SASAmazonBidderAdapter(adResponse);
         } else {
-
             // trigger new config fetching
             fetchConfig();
 
