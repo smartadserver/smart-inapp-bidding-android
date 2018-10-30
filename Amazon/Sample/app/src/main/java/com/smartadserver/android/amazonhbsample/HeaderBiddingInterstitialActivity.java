@@ -16,6 +16,7 @@ import com.amazon.device.ads.DTBAdResponse;
 import com.amazon.device.ads.DTBAdSize;
 import com.smartadserver.android.library.SASInterstitialView;
 import com.smartadserver.android.library.headerbidding.SASAmazonBidderAdapter;
+import com.smartadserver.android.library.headerbidding.SASAmazonBidderConfigManager;
 import com.smartadserver.android.library.model.SASAdElement;
 import com.smartadserver.android.library.ui.SASAdView;
 import com.smartadserver.android.library.ui.SASRotatingImageLoader;
@@ -28,7 +29,7 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
     /*****************************************
      * Ad Constants
      *****************************************/
-    private final static String BASEURL = "http://mobile.smartadserver.com";
+    private final static String BASEURL = "https://mobile.smartadserver.com";
     private final static int SITE_ID = 104808;
     private final static String PAGE_ID = "936821";
     private final static int FORMAT_ID = 15140;
@@ -38,10 +39,8 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
     private static final String AMAZON_APP_KEY = "4852afca9a904e46a680b34b7f0aab8f";
     private static final String AMAZON_INTERSTITIAL_SLOT_ID = "3b7de139-bc75-4502-a9c7-69b496f3be90";
 
-    private static final double AMAZON_FAKE_PRICE = 0.70;
     private static final boolean AMAZON_LOGGING_ENABLED = true;
     private static final boolean AMAZON_TESTING_ENABLED = true;
-    private static final String AMAZON_CURRENCY = "EUR";
 
     /*****************************************
      * Members declarations
@@ -80,9 +79,6 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
         // Initialize SASInterstitialView
         initInterstitialView();
 
-        // init Amazon price point table
-        initAmazonPriceTable();
-
         // Create button to manually refresh interstitial
         mDisplayInterstitialButton = (Button)this.findViewById(R.id.loadAd);
         mDisplayInterstitialButton.setOnClickListener(new View.OnClickListener() {
@@ -90,28 +86,6 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
                 loadInterstitialAd();
             }
         });
-
-    }
-
-    /**
-     * Creates and populates a conversion table between Amazon ad formats and their corresponding mean CPM
-     * This is the publisher's responsability to fill this table with the CPMs given by Amazon
-     * They will be passed to the Smart AdServer's delivery engine to determine if an ad with a higher CPM can
-     * be served or not.
-     * Here, we set a fake price for all interstitial price points for the sake of demonstration.
-     *
-     */
-    private void initAmazonPriceTable() {
-        amazonPricePointTable = new HashMap<>();
-
-        amazonPricePointTable.put("ointerstitialp1", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("ointerstitialp2", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("ointerstitialp3", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("ointerstitialp4", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("tInterstitialp10", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("tInterstitialp20", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("tInterstitialp30", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("tInterstitialp40", AMAZON_FAKE_PRICE);
 
     }
 
@@ -195,9 +169,11 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
                 Log.i("Sample", "Amazon ad request is successful");
                 // Amazon returned an ad, wrap it in a SASAmazonBidderAdapter object and pass it to the Smart ad call
                 try {
-                    SASAmazonBidderAdapter bidderAdapter = new SASAmazonBidderAdapter(dtbAdResponse, amazonPricePointTable, AMAZON_CURRENCY);
+                    // get SASAmazonBidderConfigManager shared instance (url in parameter does not matter here as
+                    // it was intialized in MainActivity) and create a SASAmazonBidderAdapter from it
+                    SASAmazonBidderAdapter bidderAdapter = SASAmazonBidderConfigManager.getInstance().getBidderAdapter(dtbAdResponse);
                     mInterstitialView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, interstitialResponseHandler, bidderAdapter);
-                } catch (IllegalArgumentException ex) {
+                } catch (SASAmazonBidderConfigManager.ConfigurationException ex) {
                     Log.e("Sample", "Amazon bidder can't be created :" + ex.getMessage());
                     // fallback: Smart call without Amazon header bidding
                     mInterstitialView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, interstitialResponseHandler, null);

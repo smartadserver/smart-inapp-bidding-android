@@ -15,6 +15,7 @@ import com.amazon.device.ads.DTBAdResponse;
 import com.amazon.device.ads.DTBAdSize;
 import com.smartadserver.android.library.SASBannerView;
 import com.smartadserver.android.library.headerbidding.SASAmazonBidderAdapter;
+import com.smartadserver.android.library.headerbidding.SASAmazonBidderConfigManager;
 import com.smartadserver.android.library.model.SASAdElement;
 import com.smartadserver.android.library.ui.SASAdView;
 import com.smartadserver.android.library.ui.SASRotatingImageLoader;
@@ -34,7 +35,7 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
     /*****************************************
      * Ad Constants
      *****************************************/
-    private final static String BASEURL = "http://mobile.smartadserver.com";
+    private final static String BASEURL = "https://mobile.smartadserver.com";
     private final static int SITE_ID = 104808;
     private final static String PAGE_ID = "936820";
     private final static int FORMAT_ID = 15140;
@@ -44,10 +45,8 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
     private static final String AMAZON_APP_KEY = "4852afca9a904e46a680b34b7f0aab8f";
     private static final String AMAZON_BANNER_SLOT_ID = "591e251f-3854-4777-89bb-d545fb71e341";
 
-    private static final double AMAZON_FAKE_PRICE = 0.70;
     private static final boolean AMAZON_LOGGING_ENABLED = true;
     private static final boolean AMAZON_TESTING_ENABLED = true;
-    private static final String AMAZON_CURRENCY = "EUR";
 
 
     /*****************************************
@@ -100,29 +99,8 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
             }
         });
 
-        // init Amazon price point table
-        initAmazonPriceTable();
-
         // Load Banner ad
         loadBannerAd();
-
-    }
-
-    /**
-     * Creates and populates a conversion table between Amazon ad formats and their corresponding mean CPM
-     * This is the publisher's responsability to fill this table with the CPMs given by Amazon
-     * They will be passed to the Smart AdServer's delivery engine to determine if an ad with a higher CPM can
-     * be served or not.
-     * Here, we set a fake price for all 300x250 price points for the sake of demonstration.
-     *
-     */
-    private void initAmazonPriceTable() {
-        amazonPricePointTable = new HashMap<>();
-
-        amazonPricePointTable.put("t300x250p10", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("t300x250p20", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("t300x250p30", AMAZON_FAKE_PRICE);
-        amazonPricePointTable.put("t300x250p40", AMAZON_FAKE_PRICE);
 
     }
 
@@ -182,9 +160,11 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
                 Log.i("Sample", "Amazon ad request is successful");
                 // Amazon returned an ad, wrap it in a SASAmazonBidderAdapter object and pass it to the Smart ad call
                 try {
-                    SASAmazonBidderAdapter bidderAdapter = new SASAmazonBidderAdapter(dtbAdResponse, amazonPricePointTable, AMAZON_CURRENCY);
+                    // get SASAmazonBidderConfigManager shared instance (url in parameter does not matter here as
+                    // it was intialized in MainActivity) and create a SASAmazonBidderAdapter from it
+                    SASAmazonBidderAdapter bidderAdapter = SASAmazonBidderConfigManager.getInstance().getBidderAdapter(dtbAdResponse);
                     mBannerView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, bannerResponseHandler, bidderAdapter);
-                } catch (IllegalArgumentException ex) {
+                } catch (SASAmazonBidderConfigManager.ConfigurationException ex) {
                     Log.e("Sample", "Amazon bidder can't be created :" + ex.getMessage());
                     mBannerView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, bannerResponseHandler, null);
                 }

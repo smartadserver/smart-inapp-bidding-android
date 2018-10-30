@@ -19,43 +19,61 @@ import java.util.Map;
  */
 public class SASAmazonBidderAdapter implements SASBidderAdapter {
 
+    // tag for logging purposes
     private static final String TAG = SASAmazonBidderAdapter.class.getSimpleName();
 
+    // the name of the winning SSP
     private String winningSSPName;
-    private String winningCreativeId;
-    private String dealId;
-    private double price;
-    private String currency;
 
+    // the winning creative ID
+    private String winningCreativeId;
+
+    // the winning deal ID
+    private String dealId;
+
+    // the winning creative CPM
+    private double price;
+
+
+    // ad view width & height
     private String adViewWidth = "";
     private String adViewHeight = "";
 
+    // amazon creative variables
     private String amzn_h = "";
     private String amzn_b = "";
     private String amznslots = "";
 
 
-    public SASAmazonBidderAdapter(DTBAdResponse adResponse, Map<String, Double> prices, String currency) throws IllegalArgumentException {
+    /**
+     * Creates a {@link SASAmazonBidderAdapter} from Amazon ad response
+     */
+    /*package*/ SASAmazonBidderAdapter(DTBAdResponse adResponse) throws IllegalArgumentException {
 
-        // If no adSizes in the adResponse, return nil, there is no winning ad.
+        // If no ads in the adResponse, return nil, there is no winning ad.
         if (adResponse.getAdCount() == 0) {
             throw new IllegalArgumentException(" no ad in Amazon response");
         }
 
+        // store winning creative attributes
         this.winningSSPName = "Amazon"; // Using 'Amazon' as SSP name since Amazon will never return the real name of the winning ssp
         this.winningCreativeId = adResponse.getBidId(); // TODO deprecated but no info on what we are supposed to use instead :/
         this.dealId = null;
 
+        // retrievd the ad size of the first ad in Amazon's response
         DTBAdSize adSize = adResponse.getDTBAds().get(0);
+
+        // Get associated pricepoint
         String pricePoint = adResponse.getPricePoints(adSize);
 
-        Double convertedCPM = prices.get(pricePoint);
+        //get price (if any) associated with pricepoint from SASAmazonBidderConfigManager
+        Double convertedCPM = SASAmazonBidderConfigManager.getInstance().getPriceForPricePoint(pricePoint);
         if (convertedCPM == null) {
             throw new IllegalArgumentException(" no CPM found for selected Amazon ad");
         }
         this.price = convertedCPM;
-        this.currency = currency;
 
+        // extract and store Amazon ad view width and height
         if (adSize != null) {
             if (adSize.getWidth() >= 9999 && adSize.getHeight() >= 9999) { // Interstitial
                 this.adViewWidth = "100%";
@@ -66,6 +84,7 @@ public class SASAmazonBidderAdapter implements SASBidderAdapter {
             }
         }
 
+        // extract and store Amazon custom parameters
         Map<String, List<String>> customParams = adResponse.getDefaultDisplayAdsRequestCustomParams();
         if (customParams.get("amzn_h") != null && customParams.get("amzn_h").size() > 0) {
             amzn_h = customParams.get("amzn_h").get(0);
@@ -77,6 +96,7 @@ public class SASAmazonBidderAdapter implements SASBidderAdapter {
             amznslots = customParams.get("amznslots").get(0);
         }
     }
+
 
     @NonNull
     @Override
@@ -110,7 +130,7 @@ public class SASAmazonBidderAdapter implements SASBidderAdapter {
     @NonNull
     @Override
     public String getCurrency() {
-        return currency;
+        return SASAmazonBidderConfigManager.getInstance().getCurrencyCode();
     }
 
     @Nullable
@@ -122,16 +142,13 @@ public class SASAmazonBidderAdapter implements SASBidderAdapter {
     @Nullable
     @Override
     public String getBidderWinningAdMarkup() {
-        String markup = "<div style=\"display:inline-block\">\r\n    <div id=\"__dtbAd__\" style=\"width:%%PATTERN:adWidth%%; height:%%PATTERN:adHeight%%; overflow:hidden;\">\r\n        <!--Placeholder for the Ad -->\r\n    </div>\r\n    <script type=\"text/javascript\" src=\"mraid.js\"></script>\r\n    <script type=\"text/javascript\" src=\"https://c.amazon-adsystem.com/dtb-m.js\"></script>\r\n    <script type=\"text/javascript\">\r\n        amzn.dtb.loadAd(\"%%PATTERN:amznslots%%\", \"%%PATTERN:amzn_b%%\",\"%%PATTERN:amzn_h%%\");\r\n    </script>\r\n</div>";
-
-        markup = markup.replace("%%PATTERN:adWidth%%", adViewWidth);
-        markup = markup.replace("%%PATTERN:adHeight%%", adViewHeight);
-
-        markup = markup.replace("%%PATTERN:amzn_b%%", amzn_b);
-        markup = markup.replace("%%PATTERN:amzn_h%%", amzn_h);
-        markup = markup.replace("%%PATTERN:amznslots%%", amznslots);
-
-        return markup;
+        String creativeTemplate = SASAmazonBidderConfigManager.getInstance().getCreativeTag();
+        return creativeTemplate.replace("%%KEYWORD:adWidth%%", adViewWidth)
+                .replace("%%KEYWORD:adWidth%%", adViewWidth)
+                .replace("%%KEYWORD:adHeight%%", adViewHeight)
+                .replace("%%KEYWORD:amzn_b%%", amzn_b)
+                .replace("%%KEYWORD:amzn_h%%", amzn_h)
+                .replace("%%KEYWORD:amznslots%%", amznslots);
     }
 
     @Override

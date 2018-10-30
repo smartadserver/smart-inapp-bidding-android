@@ -13,6 +13,8 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.content.Intent;
 import android.content.Context;
 
+import com.smartadserver.android.library.headerbidding.SASAmazonBidderConfigManager;
+
 public class MainActivity extends AppCompatActivity {
 
     private ListView mListView = null;
@@ -50,6 +52,9 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+
+        // Initialize amazon bidder config manager with config url now
+        SASAmazonBidderConfigManager.getInstance().configure("https://mobile.smartadserver.com/ac?siteid=104808&pgid=1005469&fmtid=15140");
 
         /**
          * GDPR Consent String manual setting.
