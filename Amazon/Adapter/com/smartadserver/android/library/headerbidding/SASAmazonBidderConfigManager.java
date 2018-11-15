@@ -176,7 +176,7 @@ public class SASAmazonBidderConfigManager {
                                     newPrices = new HashMap<>();
 
                                     // fill temporary price point map
-                                    String[] pricePointArray = pricePointsString.split(" ");
+                                    String[] pricePointArray = pricePointsString.split("\\s+");
                                     for (String pricePoint: pricePointArray) {
 
                                         // split pricepoint string using separator
@@ -185,14 +185,16 @@ public class SASAmazonBidderConfigManager {
                                         // if there is an incorrect number of tokens, throw an exception
                                         if (tokens.length != 2) {
                                             newConfigException = new ConfigurationException("The received Amazon bidder configuration contains invalid price point description : " + pricePoint);
+                                            break;
+                                        } else {
+                                            // try to add a price in the Map. If there is an incorrect value, throw an exception
+                                            try {
+                                                newPrices.put(tokens[0], Double.parseDouble(tokens[1]));
+                                            } catch (NumberFormatException e) {
+                                                newConfigException = new ConfigurationException("The received Amazon bidder configuration contains invalid price point value : " + tokens[1]);
+                                            }
                                         }
 
-                                        // try to add a price in the Map. If there is an incorrect value, throw an exception
-                                        try {
-                                            newPrices.put(tokens[0], Double.parseDouble(tokens[1]));
-                                        } catch (NumberFormatException e) {
-                                            newConfigException = new ConfigurationException("The received Amazon bidder configuration contains invalid price point value : " + tokens[1]);
-                                        }
                                     }
                                 } else {
                                     newConfigException = new ConfigurationException("The received Amazon bidder configuration does not contain any price point");
