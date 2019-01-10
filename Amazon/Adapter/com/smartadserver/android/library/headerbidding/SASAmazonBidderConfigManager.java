@@ -59,7 +59,7 @@ public class SASAmazonBidderConfigManager {
     private String currencyCode;
 
     // Amazon price point to value Map
-    private Map<String,Double> prices = new HashMap<>();
+    private Map<String, Double> prices = new HashMap<>();
 
     // the Amazon creative script
     private String creativeTag;
@@ -81,6 +81,7 @@ public class SASAmazonBidderConfigManager {
 
     /**
      * Returns the shared instance of {@link SASAmazonBidderConfigManager}
+     *
      * @return
      */
     public static synchronized SASAmazonBidderConfigManager getInstance() throws IllegalArgumentException {
@@ -140,9 +141,9 @@ public class SASAmazonBidderConfigManager {
 
 
                         // local variables
-                        String currencyCode = null ,creativeTag = null;
+                        String currencyCode = null, creativeTag = null;
                         ConfigurationException newConfigException = null;
-                        Map<String,Double> newPrices = null;
+                        Map<String, Double> newPrices = null;
 
                         // call was successful
                         if (response.isSuccessful()) {
@@ -177,7 +178,7 @@ public class SASAmazonBidderConfigManager {
 
                                     // fill temporary price point map
                                     String[] pricePointArray = pricePointsString.split("\\s+");
-                                    for (String pricePoint: pricePointArray) {
+                                    for (String pricePoint : pricePointArray) {
 
                                         // split pricepoint string using separator
                                         String[] tokens = pricePoint.split(":");
@@ -255,7 +256,7 @@ public class SASAmazonBidderConfigManager {
     /**
      * Private constructor for singleton instance
      */
-    private SASAmazonBidderConfigManager()  {
+    private SASAmazonBidderConfigManager() {
         // initialize configException to a non configured state
         configException = new ConfigurationException("SASAmazonBidderConfigManager singleton is not configured yet," +
                 "configure() must be called first with a valid configuration URL");
@@ -263,6 +264,7 @@ public class SASAmazonBidderConfigManager {
 
     /**
      * Configure singleton instance
+     *
      * @param configURL
      */
     public synchronized void configure(String configURL) throws IllegalArgumentException {
@@ -284,7 +286,7 @@ public class SASAmazonBidderConfigManager {
             // retrieve config at url
             fetchConfig();
         } else {
-            Log.i(TAG," is already configured!");
+            Log.i(TAG, " is already configured!");
         }
 
     }
@@ -315,7 +317,7 @@ public class SASAmazonBidderConfigManager {
     /**
      * Returns whether this {@link SASAmazonBidderConfigManager} is ready or not
      */
-    private synchronized boolean isReady() throws ConfigurationException  {
+    private synchronized boolean isReady() throws ConfigurationException {
         if (configException != null) {
             throw configException;
         }
@@ -331,11 +333,13 @@ public class SASAmazonBidderConfigManager {
 
     /**
      * Creates a {@link SASAmazonBidderAdapter} from the Amazon ad response
+     *
      * @param adResponse the Amazon ad response object
      * @return a {@link SASAmazonBidderAdapter} to convey Amazon ad response elements to Smart ad delivery
      * @throws ConfigurationException the exception that occurred when configuring the {@link SASAmazonBidderConfigManager}, if any
      */
-    @Nullable public SASAmazonBidderAdapter getBidderAdapter(DTBAdResponse adResponse) throws ConfigurationException {
+    @Nullable
+    public SASAmazonBidderAdapter getBidderAdapter(DTBAdResponse adResponse) throws ConfigurationException {
 
         if (isReady()) {
             if (System.currentTimeMillis() > (lastConfigCallDate + CONFIG_TTL)) {

@@ -13,19 +13,18 @@ import com.amazon.device.ads.DTBAdCallback;
 import com.amazon.device.ads.DTBAdRequest;
 import com.amazon.device.ads.DTBAdResponse;
 import com.amazon.device.ads.DTBAdSize;
-import com.smartadserver.android.library.SASBannerView;
 import com.smartadserver.android.library.headerbidding.SASAmazonBidderAdapter;
 import com.smartadserver.android.library.headerbidding.SASAmazonBidderConfigManager;
 import com.smartadserver.android.library.model.SASAdElement;
-import com.smartadserver.android.library.ui.SASAdView;
+import com.smartadserver.android.library.model.SASAdPlacement;
+import com.smartadserver.android.library.ui.SASBannerView;
 import com.smartadserver.android.library.ui.SASRotatingImageLoader;
 
-import java.util.HashMap;
 import java.util.Map;
 
 /**
  * Simple activity featuring a banner with Amazon Header Bidding integration
- *
+ * <p>
  * To keep things simple, the Amazon price table is filled with AMAZON_FAKE_PRICE CPM value for all price points (see #initAmazonPriceTable())
  * You can tweak this price to values above or below 0.5, which is the floor value set for the Smart competing ad.
  */
@@ -35,7 +34,6 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
     /*****************************************
      * Ad Constants
      *****************************************/
-    private final static String BASEURL = "https://mobile.smartadserver.com";
     private final static int SITE_ID = 104808;
     private final static String PAGE_ID = "936820";
     private final static int FORMAT_ID = 15140;
@@ -53,13 +51,10 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
      * Members declarations
      *****************************************/
     // Banner view (as declared in the activity_banner_hb.xml layout file, in res/layout)
-    SASBannerView mBannerView;
-
-    // Handler class to be notified of ad loading outcome
-    SASAdView.AdResponseHandler bannerResponseHandler;
+    SASBannerView bannerView;
 
     // Button declared in main.xml
-    Button mRefreshBannerButton;
+    Button refreshBannerButton;
 
     // Table containing actual price points  (CPM) for Amazon ad formats
     Map<String, Double> amazonPricePointTable;
@@ -80,20 +75,16 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
          * now perform Ad related code here
          *****************************************/
 
-        // Enable output to Android Logcat (optional)
-        SASAdView.enableLogging();
-
         // Enable debugging in Webview if available (optional)
         WebView.setWebContentsDebuggingEnabled(true);
-
-        SASAdView.setBaseUrl(BASEURL);
 
         // Initialize SASBannerView
         initBannerView();
 
         // Create button to manually refresh the ad
-        mRefreshBannerButton = (Button)this.findViewById(R.id.reloadButton);
-        mRefreshBannerButton.setOnClickListener(new View.OnClickListener() {
+        refreshBannerButton = this.findViewById(R.id.reloadButton);
+        refreshBannerButton.setOnClickListener(new View.OnClickListener() {
+            @Override
             public void onClick(View v) {
                 loadBannerAd();
             }
@@ -101,7 +92,6 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
 
         // Load Banner ad
         loadBannerAd();
-
     }
 
     /**
@@ -109,7 +99,7 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
      */
     @Override
     protected void onDestroy() {
-        mBannerView.onDestroy();
+        bannerView.onDestroy();
         super.onDestroy();
     }
 
@@ -118,24 +108,56 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
      */
     private void initBannerView() {
         // Fetch the SASBannerView inflated from the main.xml layout file
-        mBannerView = (SASBannerView)this.findViewById(R.id.header_bidding_banner);
+        bannerView = (SASBannerView) this.findViewById(R.id.header_bidding_banner);
 
         // Add a loader view on the banner. This view covers the banner placement, to indicate progress, whenever the banner is loading an ad.
         // This is optional
         View loader = new SASRotatingImageLoader(this);
         loader.setBackgroundColor(getResources().getColor(R.color.colorLoaderBackground));
-        mBannerView.setLoaderView(loader);
+        bannerView.setLoaderView(loader);
 
-        // Instantiate the response handler used when loading an ad on the banner
-        bannerResponseHandler = new SASAdView.AdResponseHandler() {
-            public void adLoadingCompleted(SASAdElement adElement) {
-                Log.i("Sample", "Banner loading completed");
+        // Set the listener used when load an ad on the banner
+        bannerView.setBannerListener(new SASBannerView.BannerListener() {
+            @Override
+            public void onBannerAdLoaded(SASBannerView sasBannerView, SASAdElement sasAdElement) {
+                Log.i("Sample", "Banner loading completed.");
             }
 
-            public void adLoadingFailed(Exception e) {
+            @Override
+            public void onBannerAdFailedToLoad(SASBannerView sasBannerView, Exception e) {
                 Log.i("Sample", "Banner loading failed: " + e.getMessage());
             }
-        };
+
+            @Override
+            public void onBannerAdClicked(SASBannerView sasBannerView) {
+                Log.i("Sample", "Banner clicked.");
+            }
+
+            @Override
+            public void onBannerAdExpanded(SASBannerView sasBannerView) {
+                Log.i("Sample", "Banner expanded.");
+            }
+
+            @Override
+            public void onBannerAdCollapsed(SASBannerView sasBannerView) {
+                Log.i("Sample", "Banner collapsed.");
+            }
+
+            @Override
+            public void onBannerAdResized(SASBannerView sasBannerView) {
+                Log.i("Sample", "Banner resized.");
+            }
+
+            @Override
+            public void onBannerAdClosed(SASBannerView sasBannerView) {
+                Log.i("Sample", "Banner closed.");
+            }
+
+            @Override
+            public void onBannerAdVideoEvent(SASBannerView sasBannerView, int i) {
+                Log.i("Sample", "Banner video event: " + i);
+            }
+        });
     }
 
     /**
@@ -149,8 +171,11 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
         AdRegistration.enableLogging(AMAZON_LOGGING_ENABLED);
         AdRegistration.enableTesting(AMAZON_TESTING_ENABLED);
 
+        // Create Smart ad placement
+        final SASAdPlacement adPlacement = new SASAdPlacement(SITE_ID, PAGE_ID, FORMAT_ID, TARGET);
+
         // Create an ad size object and pass it to the ad request object
-        DTBAdSize adSize = new DTBAdSize(300, 250, AMAZON_BANNER_SLOT_ID); // TODO don't hardcode this?
+        DTBAdSize adSize = new DTBAdSize(300, 250, AMAZON_BANNER_SLOT_ID);
         DTBAdRequest adLoader = new DTBAdRequest();
         adLoader.setSizes(adSize);
         adLoader.loadAd(new DTBAdCallback() {
@@ -163,10 +188,10 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
                     // get SASAmazonBidderConfigManager shared instance (url in parameter does not matter here as
                     // it was intialized in MainActivity) and create a SASAmazonBidderAdapter from it
                     SASAmazonBidderAdapter bidderAdapter = SASAmazonBidderConfigManager.getInstance().getBidderAdapter(dtbAdResponse);
-                    mBannerView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, bannerResponseHandler, bidderAdapter);
+                    bannerView.loadAd(adPlacement, bidderAdapter);
                 } catch (SASAmazonBidderConfigManager.ConfigurationException ex) {
                     Log.e("Sample", "Amazon bidder can't be created :" + ex.getMessage());
-                    mBannerView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, bannerResponseHandler, null);
+                    bannerView.loadAd(adPlacement);
                 }
             }
 
@@ -174,7 +199,7 @@ public class HeaderBiddingBannerActivity extends AppCompatActivity {
             public void onFailure(AdError adError) {
                 Log.e("Sample", "Amazon ad request failed with error: " + adError.getMessage());
                 // fallback: Smart call without Amazon header bidding
-                mBannerView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, bannerResponseHandler, null);
+                bannerView.loadAd(adPlacement);
             }
         });
     }

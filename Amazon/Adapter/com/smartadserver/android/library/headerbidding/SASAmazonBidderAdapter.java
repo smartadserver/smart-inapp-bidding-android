@@ -6,7 +6,6 @@ import android.util.Log;
 
 import com.amazon.device.ads.DTBAdResponse;
 import com.amazon.device.ads.DTBAdSize;
-import com.smartadserver.android.library.headerbidding.SASBidderAdapter;
 
 import java.util.List;
 import java.util.Map;
@@ -68,7 +67,7 @@ public class SASAmazonBidderAdapter implements SASBidderAdapter {
 
         //get price (if any) associated with pricepoint from SASAmazonBidderConfigManager
         Double convertedCPM = SASAmazonBidderConfigManager.getInstance().getPriceForPricePoint(pricePoint);
-        if (convertedCPM == null) {
+        if (convertedCPM == 0) {
             throw new IllegalArgumentException(" no CPM found for selected Amazon ad");
         }
         this.price = convertedCPM;

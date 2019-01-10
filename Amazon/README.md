@@ -9,7 +9,7 @@ You will find in this repository the classes you need to connect _Amazon Publish
 
 The _Amazon bidder adapter_ is composed of two different classes:
 
-- ```SASAmazonBidderAdapter```: this class is a [SASBidderAdapter](http://help.smartadserver.com/Android/v6.9/Content/refman/reference/com/smartadserver/android/library/headerbidding/SASBidderAdapter.html) interface implementation and must be provided to the _Smart Display SDK_ when loading ads
+- ```SASAmazonBidderAdapter```: this class is a [SASBidderAdapter](http://documentation.smartadserver.com/displaySDK/android/API/reference/com/smartadserver/android/library/headerbidding/SASBidderAdapter.html) interface implementation and must be provided to the _Smart Display SDK_ when loading ads
 - ```SASAmazonBidderConfigManager```: this singleton class acts as a bidder adapter factory that fetches a remote configuration with Amazon specific parameters first, and then creates instances of ```SASAmazonBidderAdapter``` from Amazon ad responses through the ```getBidderAdapter(DTBAdResponse adResponse)```method.
 It must be initialized **once** at application startup (via its ```configure``` method), typically in the Android Application class of your application.
 
@@ -40,23 +40,23 @@ You must configure the adapter by calling ```configure(String configUrl)``` meth
 The best place to retrieve the configuration is in the ```onCreate()``` method of your ```Application``` class, where you should put:
 
     SASAmazonBidderConfigManager.getInstance().configure("yourConfigUrl");
-    
+
 ### Request an Amazon ad to create an instance of the Amazon bidder adapter
 
 Request an Amazon ad using ```DTBAdLoader```, then create an instance of ```SASAmazonBidderAdapter``` using the Amazon ad response when the Amazon call is successful (i.e. in the ```OnSuccess()``` method of the ```DTBAdCallback``` object) :
 
-    
+
     @Override  
     public void onSuccess(DTBAdResponse dtbAdResponse) {  
     Log.i(TAG, "Amazon ad request is successful");  
-  
+
         try {
             // get SASAmazonBidderConfigManager singleton instance
             SASAmazonBidderConfigManager configManager = SASAmazonBidderConfigManager.getInstance();
-        
+
             // request a SASAmazonBidderAdapter from the SASAmazonBidderConfigManager
             SASAmazonBidderAdapter bidderAdapter = configManager.getBidderAdapter(dtbAdResponse);
-        
+
             // proceed with Smart loadAd call, passing the SASAmazonBidderAdapter instance (see below)
         } catch (Exception exception) {  
            Log.e(TAG, "Amazon bidder can't be created : " + exception);  
@@ -68,8 +68,12 @@ Please note that an _Amazon bidder adapter_ **can only be used once**.
 
 ### Make an ad call with the Amazon bidder adapter
 
-You can now make an ad call using the _Smart Display SDK_. Simply provide the adapter instance created earlier to Smart's AdView when loading it. If this instance is ```null```, the _Smart Display SDK_ will make an ad call without in-app bidding so you will still get an ad.
+You can now make an ad call using the _Smart Display SDK_. Simply provide the adapter instance created earlier to Smart's ad view, or interstitial manager, when loading it. If this instance is ```null```, the _Smart Display SDK_ will make an ad call without in-app bidding so you will still get an ad.
 
-    sasAdView.loadAd(yourSiteID, yourPageId, yourFormatId, true, targetString, bannerResponseHandler, bidderAdapter);
+    // for a banner
+    bannerView.loadAd(new SASAdPlacement(<the site ID>, <the page ID>, <the format ID>), bidderAdapter);
+
+    // for an interstitial
+    interstitialManager.loadAd(bidderAdapter);
 
 At this point, the adapter and the _Smart Display SDK_ will take care of everything so the most valuable ad will be displayed automatically.

@@ -3,6 +3,7 @@ package com.smartadserver.android.amazonhbsample;
 import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,21 +12,31 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.content.Intent;
-import android.content.Context;
 
 import com.smartadserver.android.library.headerbidding.SASAmazonBidderConfigManager;
+import com.smartadserver.android.library.util.SASConfiguration;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ListView mListView = null;
+    static private final int SITE_ID = 1337; // Your SITE_ID
+    static private final String BASE_URL = "https://mobile.smartadserver.com"; // Your base url
 
+    private ListView mListView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final Context context = this;
+        // First of all, configure the SDK
+        try {
+            SASConfiguration.getSharedInstance().configure(this, SITE_ID, BASE_URL);
+        } catch (SASConfiguration.ConfigurationException e) {
+            Log.w("Sample", "Smart SDK configuration failed: " + e.getMessage());
+        }
+
+        // Enable output to Android Logcat (optional)
+        SASConfiguration.getSharedInstance().setLoggingEnabled(true);
 
         //Set Title
         setTitle(R.string.title_activity_main);
@@ -35,19 +46,17 @@ public class MainActivity extends AppCompatActivity {
 
         //Setup clickListener
         mListView.setOnItemClickListener(new OnItemClickListener() {
-
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                int selectedIndex = position;
-
-                switch (selectedIndex) {
+                switch (position) {
                     case 1:
                         startHeaderBiddingBannerActivity();
                         break;
                     case 2:
                         startHeaderBiddingInterstitialActivity();
                         break;
-                    default: break;
+                    default:
+                        break;
                 }
             }
 
@@ -107,12 +116,12 @@ public class MainActivity extends AppCompatActivity {
     // Starting Activities
     //////////////////////////
 
-    private void startHeaderBiddingBannerActivity () {
+    private void startHeaderBiddingBannerActivity() {
         Intent intent = new Intent(this, HeaderBiddingBannerActivity.class);
         startActivity(intent);
     }
 
-    private void startHeaderBiddingInterstitialActivity () {
+    private void startHeaderBiddingInterstitialActivity() {
         Intent intent = new Intent(this, HeaderBiddingInterstitialActivity.class);
         startActivity(intent);
     }

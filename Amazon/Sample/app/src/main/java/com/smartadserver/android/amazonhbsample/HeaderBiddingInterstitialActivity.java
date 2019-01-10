@@ -14,14 +14,12 @@ import com.amazon.device.ads.DTBAdCallback;
 import com.amazon.device.ads.DTBAdRequest;
 import com.amazon.device.ads.DTBAdResponse;
 import com.amazon.device.ads.DTBAdSize;
-import com.smartadserver.android.library.SASInterstitialView;
 import com.smartadserver.android.library.headerbidding.SASAmazonBidderAdapter;
 import com.smartadserver.android.library.headerbidding.SASAmazonBidderConfigManager;
 import com.smartadserver.android.library.model.SASAdElement;
-import com.smartadserver.android.library.ui.SASAdView;
-import com.smartadserver.android.library.ui.SASRotatingImageLoader;
+import com.smartadserver.android.library.model.SASAdPlacement;
+import com.smartadserver.android.library.ui.SASInterstitialManager;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
@@ -29,7 +27,6 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
     /*****************************************
      * Ad Constants
      *****************************************/
-    private final static String BASEURL = "https://mobile.smartadserver.com";
     private final static int SITE_ID = 104808;
     private final static String PAGE_ID = "936821";
     private final static int FORMAT_ID = 15140;
@@ -45,14 +42,11 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
     /*****************************************
      * Members declarations
      *****************************************/
-    // Interstitial view (this view is not part of any xml layout file)
-    SASInterstitialView mInterstitialView;
-
-    // Handler classe to be notified of ad loading outcome
-    SASAdView.AdResponseHandler interstitialResponseHandler;
+    // Interstitial manager
+    SASInterstitialManager interstitialManager;
 
     // Button declared in main.xml
-    Button mDisplayInterstitialButton;
+    Button displayInterstitialButton;
 
     // Table containing actual price points (CPM) for Amazon ad formats
     Map<String, Double> amazonPricePointTable;
@@ -68,20 +62,16 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
         /*****************************************
          * Now perform Ad related code here
          *****************************************/
-        // Enable output to Android Logcat (optional)
-        SASAdView.enableLogging();
-
         // Enable debugging in Webview if available (optional)
         WebView.setWebContentsDebuggingEnabled(true);
-
-        SASAdView.setBaseUrl(BASEURL);
 
         // Initialize SASInterstitialView
         initInterstitialView();
 
         // Create button to manually refresh interstitial
-        mDisplayInterstitialButton = (Button)this.findViewById(R.id.loadAd);
-        mDisplayInterstitialButton.setOnClickListener(new View.OnClickListener() {
+        displayInterstitialButton = this.findViewById(R.id.loadAd);
+        displayInterstitialButton.setOnClickListener(new View.OnClickListener() {
+            @Override
             public void onClick(View v) {
                 loadInterstitialAd();
             }
@@ -94,7 +84,7 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
      */
     @Override
     protected void onDestroy() {
-        mInterstitialView.onDestroy();
+        interstitialManager.onDestroy();
         super.onDestroy();
     }
 
@@ -104,47 +94,52 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
      */
     private void initInterstitialView() {
 
-        // Create SASInterstitialView instance
-        mInterstitialView = new SASInterstitialView(this);
-        mInterstitialView.setBackgroundColor(Color.WHITE);
+        // Create your ad placement
+        SASAdPlacement adPlacement = new SASAdPlacement(SITE_ID, PAGE_ID, FORMAT_ID, TARGET);
 
-        // Add a loader view on the interstitial view. This view is displayed fullscreen, to indicate progress,
-        // whenever the interstitial is loading an ad.
-        View loader = new SASRotatingImageLoader(this);
-        loader.setBackgroundColor(Color.WHITE);
-        mInterstitialView.setLoaderView(loader);
+        // Create the interstitial manager instance
+        interstitialManager = new SASInterstitialManager(this, adPlacement);
 
-        // Add a state change listener on the SASInterstitialView instance to monitor MRAID states changes.
+        // Set the interstitial manager listener.
         // Useful for instance to perform some actions as soon as the interstitial disappears.
-        mInterstitialView.addStateChangeListener(new SASAdView.OnStateChangeListener() {
-            public void onStateChanged(SASAdView.StateChangeEvent stateChangeEvent) {
-                switch(stateChangeEvent.getType()) {
-                    case SASAdView.StateChangeEvent.VIEW_DEFAULT:
-                        // the MRAID Ad View is in default state
-                        Log.i("Sample", "Interstitial MRAID state : DEFAULT");
-                        break;
-                    case SASAdView.StateChangeEvent.VIEW_EXPANDED:
-                        // the MRAID Ad View is in expanded state
-                        Log.i("Sample", "Interstitial MRAID state : EXPANDED");
-                        break;
-                    case SASAdView.StateChangeEvent.VIEW_HIDDEN:
-                        // the MRAID Ad View is in hidden state
-                        Log.i("Sample", "Interstitial MRAID state : HIDDEN");
-                        break;
-                }
-            }
-        });
-
-        // Instantiate the response handler used when loading an interstitial ad
-        interstitialResponseHandler = new SASAdView.AdResponseHandler() {
-            public void adLoadingCompleted(SASAdElement adElement) {
-                Log.i("Sample", "Interstitial loading completed");
+        interstitialManager.setInterstitialListener(new SASInterstitialManager.InterstitialListener() {
+            @Override
+            public void onInterstitialAdLoaded(SASInterstitialManager sasInterstitialManager, SASAdElement sasAdElement) {
+                Log.i("Sample", "Interstitial loading completed.");
+                // We display the interstitial as soon as it is loaded.
+                interstitialManager.show();
             }
 
-            public void adLoadingFailed(Exception e) {
+            @Override
+            public void onInterstitialAdFailedToLoad(SASInterstitialManager sasInterstitialManager, Exception e) {
                 Log.i("Sample", "Interstitial loading failed: " + e.getMessage());
             }
-        };
+
+            @Override
+            public void onInterstitialAdShown(SASInterstitialManager sasInterstitialManager) {
+                Log.i("Sample", "Interstitial shown.");
+            }
+
+            @Override
+            public void onInterstitialAdFailedToShow(SASInterstitialManager sasInterstitialManager, Exception e) {
+                Log.i("Sample", "Interstitial failed to show: " + e.getMessage());
+            }
+
+            @Override
+            public void onInterstitialAdClicked(SASInterstitialManager sasInterstitialManager) {
+                Log.i("Sample", "Interstitial clicked.");
+            }
+
+            @Override
+            public void onInterstitialAdDismissed(SASInterstitialManager sasInterstitialManager) {
+                Log.i("Sample", "Interstitial dismissed.");
+            }
+
+            @Override
+            public void onInterstitialAdVideoEvent(SASInterstitialManager sasInterstitialManager, int i) {
+                Log.i("Sample", "Interstitial video event: " + i);
+            }
+        });
     }
 
     /**
@@ -170,13 +165,14 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
                 // Amazon returned an ad, wrap it in a SASAmazonBidderAdapter object and pass it to the Smart ad call
                 try {
                     // get SASAmazonBidderConfigManager shared instance (url in parameter does not matter here as
-                    // it was intialized in MainActivity) and create a SASAmazonBidderAdapter from it
+                    // it was initialized in MainActivity) and create a SASAmazonBidderAdapter from it
                     SASAmazonBidderAdapter bidderAdapter = SASAmazonBidderConfigManager.getInstance().getBidderAdapter(dtbAdResponse);
-                    mInterstitialView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, interstitialResponseHandler, bidderAdapter);
+                    interstitialManager.loadAd(bidderAdapter);
+
                 } catch (SASAmazonBidderConfigManager.ConfigurationException ex) {
                     Log.e("Sample", "Amazon bidder can't be created :" + ex.getMessage());
                     // fallback: Smart call without Amazon header bidding
-                    mInterstitialView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, interstitialResponseHandler, null);
+                    interstitialManager.loadAd();
                 }
             }
 
@@ -184,7 +180,7 @@ public class HeaderBiddingInterstitialActivity extends AppCompatActivity {
             public void onFailure(AdError adError) {
                 Log.e("Sample", "Amazon ad request failed with error: " + adError.getMessage());
                 // fallback: Smart call without Amazon header bidding
-                mInterstitialView.loadAd(SITE_ID, PAGE_ID, FORMAT_ID, true, TARGET, interstitialResponseHandler, null);
+                interstitialManager.loadAd();
             }
         });
     }
