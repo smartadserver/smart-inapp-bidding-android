@@ -18,7 +18,8 @@
 
     <!-- Interstitial Activity with header bidding -->
     <string name="title_activity_interstitial">Interstitial with header bidding</string>
-    <string name="activity_interstitial_refresh_btn">LOAD AD</string>
+    <string name="activity_interstitial_load_btn">LOAD AD</string>
+    <string name="activity_interstitial_show_btn">SHOW AD</string>
     <string name="activity_interstitial_instructions">Simple interstitial integration with header bidding. Click the button to display an interstitial ad. See implementation in HeaderBiddingInterstitialActivity.</string>
 
 </resources>

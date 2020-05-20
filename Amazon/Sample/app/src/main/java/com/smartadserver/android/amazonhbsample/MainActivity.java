@@ -2,7 +2,7 @@ package com.smartadserver.android.amazonhbsample;
 
 import android.content.res.Resources;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -13,24 +13,35 @@ import android.widget.ListView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.content.Intent;
 
-import com.smartadserver.android.library.headerbidding.SASAmazonBidderConfigManager;
+import com.amazon.device.ads.AdRegistration;
 import com.smartadserver.android.library.util.SASConfiguration;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final String AMAZON_APP_KEY = "a9_onboarding_app_id";
+    public static final boolean AMAZON_LOGGING_ENABLED = true;
+    public static final boolean AMAZON_TESTING_ENABLED = true;
+    public static final boolean AMAZON_GEOLOCATION_ENABLED = true;
+
     static private final int SITE_ID = 1337; // Your SITE_ID
-    static private final String BASE_URL = "https://mobile.smartadserver.com"; // Your base url
 
     private ListView mListView = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+        // init Amazon required parameters
+        AdRegistration.getInstance(AMAZON_APP_KEY, this);
+        AdRegistration.useGeoLocation(AMAZON_GEOLOCATION_ENABLED);
+        AdRegistration.enableLogging(AMAZON_LOGGING_ENABLED);
+        AdRegistration.enableTesting(AMAZON_TESTING_ENABLED);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
         // First of all, configure the SDK
         try {
-            SASConfiguration.getSharedInstance().configure(this, SITE_ID, BASE_URL);
+            SASConfiguration.getSharedInstance().configure(this, SITE_ID);
         } catch (SASConfiguration.ConfigurationException e) {
             Log.w("Sample", "Smart SDK configuration failed: " + e.getMessage());
         }
@@ -61,9 +72,6 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
-
-        // Initialize amazon bidder config manager with config url now
-        SASAmazonBidderConfigManager.getInstance().configure("https://mobile.smartadserver.com/ac?siteid=104808&pgid=1005469&fmtid=15140");
 
         /**
          * GDPR Consent String manual setting.

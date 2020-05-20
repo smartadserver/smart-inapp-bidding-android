@@ -8,7 +8,7 @@
     <com.smartadserver.android.library.ui.SASBannerView
         android:id="@+id/header_bidding_banner"
         android:layout_width="match_parent"
-        android:layout_height="250dp"
+        android:layout_height="50dp"
         android:visibility="visible" />
 
     <LinearLayout
