@@ -44,7 +44,7 @@ dependencies {
 
     // Smart AdServer SDK
     implementation 'com.smartadserver.android:smart-core-sdk:7.6.0@aar'
-    implementation 'com.smartadserver.android:smart-display-sdk:7.6.0@aar'
+    implementation 'com.smartadserver.android:smart-display-sdk:7.6.1@aar'
 
     // needed by Smart SDK
     implementation 'com.squareup.okhttp3:okhttp:3.12.0'
